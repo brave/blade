@@ -1,0 +1,10 @@
+[Unit]
+Description=Fix Bluetooth LE Settings
+After=multi-user.target
+
+[Service]
+Type=idle
+ExecStart=/usr/bin/bash /home/blade/blade/src/tools/fix_bt_settings.sh
+
+[Install]
+WantedBy=multi-user.target

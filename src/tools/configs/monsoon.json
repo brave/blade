@@ -1,0 +1,7 @@
+{
+    "gpio_pin": 12,
+    "model": "HVPM",
+    "usb": {
+        "id": "2ab9:0001"
+    }
+}

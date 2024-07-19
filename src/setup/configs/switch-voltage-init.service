@@ -1,0 +1,10 @@
+[Unit]
+Description=Initialise Switch Voltage States
+After=multi-user.target
+
+[Service]
+Type=idle
+ExecStart=/usr/bin/python /home/blade/blade/src/tools/switch-voltage.py --init-state
+
+[Install]
+WantedBy=multi-user.target

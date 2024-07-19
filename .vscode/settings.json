@@ -1,0 +1,4 @@
+{
+    "python.analysis.typeCheckingMode": "basic",
+    "terminal.integrated.cwd": "${workspaceFolder}/src/tools",
+}
