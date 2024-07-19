@@ -1,0 +1,80 @@
+{
+    "iPhone SE": {
+        "os": "iOS",
+        "friendly_name": "iPhone SE",
+        "type": "iPhone SE 3rd Gen",
+        "pin": "000000",
+        "supported_automations": ["BT-iOS"],
+        "wifi": "5Ghz",
+        "bt_mac_address": "5C:E9:1E:4B:85:DB",
+        "ip": "192.168.1.84",
+        "battery_capacity": 1821,
+        "monsoon": {
+            "channel": "ch1",
+            "voltage": 4.2
+        },
+        "usb": {
+            "id": "05ac:12a8",
+            "ykush_serial": "Y3N10552",
+            "ykush_port": 1
+        }
+    },
+    "Pixel 6a": {
+        "os": "Android",
+        "friendly_name": "Pixel 6a",
+        "type": "Google Pixel 6a",
+        "supported_automations": ["ADB", "BT-Android", "Lighthouse"],
+        "wifi": "5Ghz",
+        "adb_identifier": "27271JEGR19627",
+        "ip": "192.168.1.131",
+        "battery_capacity": 4410,
+        "monsoon": {
+            "channel": "ch2",
+            "voltage": 4.0
+        },
+        "usb": {
+            "id": "18d1:4ee7",
+            "ykush_serial": "Y3N10552",
+            "ykush_port": 3
+        }
+    },
+    "iPhone 14 Pro": {
+        "os": "iOS",
+        "friendly_name": "iPhone 14 Pro",
+        "type": "iPhone 14 Pro",
+        "pin": "000000",
+        "supported_automations": ["BT-iOS"],
+        "wifi": "5Ghz",
+        "bt_mac_address": "5C:3E:1B:12:B9:64",
+        "ip": "192.168.1.48",
+        "battery_capacity": 3200,
+        "monsoon": {
+            "channel": "ch3",
+            "voltage": 4.0
+        },
+        "usb": {
+            "id": "05ac:12a8",
+            "ykush_serial": "Y3N10552",
+            "ykush_port": 2
+        }
+    },
+    "Galaxy S23": {
+        "os": "Android",
+        "friendly_name": "Galaxy S23",
+        "type": "Samsung Galaxy S23",
+        "supported_automations": ["ADB", "BT-Android", "Lighthouse"],
+        "wifi": "5Ghz",
+        "adb_identifier": "RFCTC0JA7KB",
+        "ip": "192.168.1.66",
+        "battery_capacity": 3785,
+        "monsoon": {
+            "channel": "ch4",
+            "voltage": 4.0
+        },
+        "usb": {
+            "id": "04e8:6860",
+            "ykush_serial": "Y3N10543",
+            "ykush_port": 1
+        }
+    }
+}

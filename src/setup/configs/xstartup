@@ -1,0 +1,13 @@
+!/bin/sh
+def
+export XKLXMODMAPDISABLE=1
+unset SESSIONMANAGER
+unset DBUSSESSIONBUSADDRESS
+
+gnome-panel &
+gnome-settings-daemon &
+metacity &
+nautilus &
+gnome-terminal &
+
+xsetroot -solid grey -cursor_name left_ptr

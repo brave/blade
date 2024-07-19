@@ -1,0 +1,26 @@
+{
+    "ch1": {
+        "gpio_pin": 14
+    },
+    "ch2": {
+        "gpio_pin": 15
+    },
+    "ch3": {
+        "gpio_pin": 18
+    },
+    "ch4": {
+        "gpio_pin": 23
+    },
+    "ch5": {
+        "gpio_pin": 24
+    },
+    "ch6": {
+        "gpio_pin": 25
+    },
+    "ch7": {
+        "gpio_pin": 8
+    },
+    "ch8": {
+        "gpio_pin": 7
+    }
+}

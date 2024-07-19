@@ -1,0 +1,10 @@
+TinyLlama_TinyLlama-1.1B-Chat-v0.5-q3f16_1
+TinyLlama_TinyLlama-1.1B-Chat-v0.5-q4f16_1
+TinyLlama_TinyLlama-1.1B-Chat-v0.5-q0f32
+stabilityai_stablelm-zephyr-3b-q3f16_1
+stabilityai_stablelm-zephyr-3b-q4f16_1
+stabilityai_stablelm-zephyr-3b-q0f32
+mistralai_Mistral-7B-Instruct-v0.1-q3f16_1
+mistralai_Mistral-7B-Instruct-v0.1-q4f16_1
+meta-llama_Llama-2-7b-chat-hf-q3f16_1
+meta-llama_Llama-2-7b-chat-hf-q4f16_1
