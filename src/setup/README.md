@@ -4,7 +4,7 @@
 
 These are the main components required to create a BLaDE node:
 
-- [Raspberry Pi](https://www.raspberrypi.com/products/) 4 (or greater)
+- [Raspberry Pi](https://www.raspberrypi.com/products/) (4 or greater, preferably 5 with 8-16GB of RAM)
 - [Monsoon HVPM](https://www.msoon.com/high-voltage-power-monitor) (High Voltage Power Monitor)
 - [YKUSH 3 USB Switchable Hub](https://www.yepkit.com/product/300110/YKUSH3) (amount depends on the number of devices you want to support)
 - 8-channel Relay Board Module, compatible with the Raspberry Pi GPIO (e.g., [this](https://www.amazon.co.uk/Yizhet-Channel-Optocoupler-Raspberry-Channels/dp/B07MJF9Z4K))
@@ -26,7 +26,7 @@ The YKUSH 3 USB Switchable Hub is connected to the Raspberry Pi via USB (USB 3.0
 
 ## Setup the BLaDE node
 
-Install the latest version of [Raspberry Pi OS Lite 64-bit](https://www.raspberrypi.com/software/operating-systems/#raspberry-pi-os-64-bit) (`with Desktop` version will also work) on a Raspberry Pi connected to the Internet over Ethernet.
+Install the latest version of [Raspberry Pi OS (64-bit) with Desktop](https://www.raspberrypi.com/software/operating-systems/#raspberry-pi-os-64-bit) on a Raspberry Pi connected to the Internet over Ethernet.
 
 Configure the user as `blade` with a password of your choice. For headless configurations please refer to [that article](https://www.raspberrypi.com/documentation/computers/configuration.html#configuring-a-user).
 
@@ -34,16 +34,18 @@ Connect to the Pi via SSH and (optionally but highly recommendable) copy your lo
 
 Run the following commands:
 
-```
+```bash
 sudo apt update
-sudo apt upgrade -y
+sudo apt dist-upgrade -y
 sudo apt autoremove -y
 sudo apt install -y git
-git clone https://github.com/brave-experiments/blade-public
 ```
 
+Clone the repository under `~/blade`.
+
 Now run the setup script:
-```
+
+```bash
 cd blade/src/setup/
 bash setup.sh
 ```
@@ -57,13 +59,13 @@ As a final step, you need to set the YKush USB hub default state for USB devices
 
 Connect the Monsoon device to the Raspberry Pi, power it on and read the USB `id` by running `lsusb`. The output should look similar to the following:
 
-```
+```text
 Bus 001 Device 097: ID 2ab9:0001 Monsoon Solutions Inc. Mobile Device Power Monitor
 ```
 
 Update the Monsoon device details at `src/tools/configs/monsoon.json`:
 
-```
+```json
 {
     "gpio_pin": 12,
     "model": "HVPM",
@@ -84,7 +86,7 @@ To configure a device, you need to complete a battery-bypass procedure that incl
 
 Next, add a new entry with the device details at `src/tools/configs/devices.json`, an example is shown below:
 
-```
+```json
     "Galaxy S23": {
         "os": "Android",
         "friendly_name": "Galaxy S23",
@@ -107,11 +109,11 @@ Next, add a new entry with the device details at `src/tools/configs/devices.json
 ```
 
 Details about the device can be retrieved as follows:
+
 - `adb_identifier`: Connect the device to the Raspberry Pi and run `adb devices` to identify the device's `id`. If this is not available, check below for more information on how to set up the device.
 - `ip`: Check the local IP address from the router's admin panel or the device's settings.
 - `battery_capacity` and `voltage`: You can see that when you disassemble the device and check the battery's specifications. Google can also be helpful.
 - `usb` `id`: Run `lsusb` as mentioned earlier to identify the device's USB `id`.
-
 
 
 ### Setup a new device
@@ -129,7 +131,7 @@ A device needs to be `paired` and `trusted` to successfully connect to `btk_serv
 
 Type `sudo bluetoothctl` to execute the Bluetooth Control utility. Next, configure it for inbound pairing by running the following commands:
 
-```
+```text
 agent on
 pairable on
 default-agent
@@ -140,7 +142,7 @@ BLaDE should now be discoverable from your mobile device. Go to Bluetooth (Setti
 
 `bluetoothctl` will display a pairing confirmation message, similar to the following example:
 
-```
+```text
 [CHG] Controller DC:A6:32:DD:67:E9 Discoverable: yes
 [NEW] Device 5C:3E:1B:F2:F6:53 BLaDE iPhone 14 Pro
 Request confirmation
@@ -151,17 +153,20 @@ Request confirmation
 
 Type `yes` to successfully pair your device with BLaDE. Make a note of your device's mac address (e.g. `71:30:2D:25:D3:1A`). Next, use the following command to also consider your device trusted.
 
-```
+```text
 trust <device mac address>
 ```
 
 Finally, add the device's mac address as an entry into `src/tools/configs/devices.json`:
-```
+
+```json
 {
     "Device X": {
-        ...
         "bt_mac_address": "<device mac address>",
-        ...
     }
 }
 ```
+
+For iOS device support, you will also need to enable "Full Access Keyboard" at the device's settings screen (Settings > Accessibility > Keyboards > Full Access Keyboard > On).
+
+For further configurations at the device level, please refer to the [OS Configurations](OS_CONFIGURATIONS.md) section.

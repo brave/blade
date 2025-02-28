@@ -3,9 +3,11 @@
 # Date:   04/03/2023
 
 import os
-import sys
 import time
 from subprocess import PIPE, Popen
+
+from libs import constants
+from libs import logger as blade_logger
 
 # get current file path
 __location__ = os.path.dirname(os.path.realpath(__file__))
@@ -21,7 +23,7 @@ def __get_adb_identifier(device, connection, port=5555):
     if connection == "wifi":
         return f"{device['ip']}:{port}"
 
-    sys.exit(f"Error: Unknown connection '{connection}'.")
+    raise Exception(f"Error: Unknown connection '{connection}'.")
 
 
 # enable adb over wifi (default port is 5555)
@@ -32,7 +34,7 @@ def enable_adb_over_wifi(device, port=5555):
 
     # enable adb over wifi
     os.system(f"adb -s {adb_identifier} tcpip {port}")
-    time.sleep(1)
+    time.sleep(constants.ONE_SECOND)
 
     # disconnect and reconnect over wifi, ignoring the expected error
     with Popen(
@@ -41,10 +43,10 @@ def enable_adb_over_wifi(device, port=5555):
         output, _ = process.communicate()
         if output:
             print(output)
-    time.sleep(2)
+    time.sleep(constants.TWO_SECONDS)
 
     os.system(f"adb connect {ip}:{port}")
-    time.sleep(1)
+    time.sleep(constants.ONE_SECOND)
 
 
 # disable adb over wifi (default port is 5555)
@@ -54,7 +56,7 @@ def disable_adb_over_wifi(device, port=5555):
 
     # disable adb over wifi
     os.system(f"adb disconnect {ip}:{port}")
-    time.sleep(1)
+    time.sleep(constants.ONE_SECOND)
 
 
 def get_device_traffic(device, connection):
@@ -136,7 +138,8 @@ def ss(device, grep_filter=None):
 def proc_net(device, socket):
 
     if socket not in ["tcp", "tcp6", "udp", "udp6"]:
-        raise Exception(f"Invalid socket type: {socket}")
+        blade_logger.logger.error(f"Error: Invalid socket type: {socket}")
+        raise Exception(f"Error: Invalid socket type: {socket}")
 
     adb_identifier = device["adb_identifier"]
     output = os.popen(
@@ -144,23 +147,46 @@ def proc_net(device, socket):
     ).read()
     return output
 
+def get_user_id(device, connection, package_name):
 
-def get_process_id(device, package_name):
-
-    adb_identifier = device["adb_identifier"]
+    adb_identifier = __get_adb_identifier(device, connection)
     output = os.popen(
-        f'adb -s {adb_identifier} shell dumpsys package {package_name} | grep userId="'
+        f'adb -s {adb_identifier} shell dumpsys package {package_name} | grep userId='
     ).read()
 
     if output == "":
         return None
 
-    output = output.split("=")
-    if len(output) < 2:
-        return None
+    # Chrome returns multiple lines here, split into lines and get first valid appId
+    for line in output.splitlines():
+        if '=' in line:
+            return line.split('=')[1].strip()
 
-    return output[1]
+    return None
 
+def get_data_usage(device, connection, package_name):
+
+    app_id = get_user_id(device, connection, package_name)
+    if app_id is None:
+        blade_logger.logger.warning(f"Warning: Could not find app_id for package '{package_name}', might have not been opened since boot. Reporting (0, 0).")
+        return 0, 0
+    
+    adb_identifier = __get_adb_identifier(device, connection)
+    script = os.path.join(__location__, "../get_data_usage_per_app.sh")
+    with Popen(
+        [script, adb_identifier, app_id], stdout=PIPE, stderr=PIPE
+    ) as process:
+        output, error = process.communicate()
+        if error or process.returncode != 0:
+            blade_logger.logger.warning(f"Warning: Could not get data usage for package '{package_name}'. Reporting 0 for all relevant metrics.")
+            rx, tx = 0, 0
+
+        else:
+            results = output.decode().split(",")
+            rx = int(results[0].split("=")[1])
+            tx = int(results[1].split("=")[1])
+    
+    return rx, tx
 
 def lsof(device, pid):
 
@@ -184,3 +210,69 @@ def push(device, local_path, remote_path):
     adb_identifier = device["adb_identifier"]
     command = f"adb -s {adb_identifier} push {local_path} {remote_path}"
     os.system(command)
+
+
+def get_memory_usage(device, connection, package_name):
+    """
+    Collects memory information for all processes of a package.
+    Returns: (total_pss, total_private_dirty, total_private_clean, main_process_rss)
+    All values are in kilobytes.
+    """
+
+    memory_dict = {
+        "accumulated_pss": 0,
+        "accumulated_private_dirty": 0,
+        "accumulated_private_clean": 0,
+        "accumulated_heap_alloc": 0,
+        "main_process_rss": 0,
+    }
+    
+    adb_identifier = __get_adb_identifier(device, connection)
+    
+    # Get all process IDs for the package
+    ps_cmd = f'adb -s {adb_identifier} shell "ps -A | grep {package_name}"'
+    ps_output = os.popen(ps_cmd).read().strip()
+    
+    if not ps_output or len(ps_output) == 0:
+        blade_logger.logger.warning(f"Warning: Could not get memory usage for package '{package_name}'. Reporting 0 for all relevant metrics.")
+        return memory_dict
+    
+    # Process each line from ps output
+    for line in ps_output.splitlines():
+        parts = line.split()
+        if len(parts) < 9:  # ps output should have at least 9 columns
+            continue
+            
+        pid = parts[1]
+        process_name = parts[8]
+        is_main_process = process_name == package_name
+        
+        # Run dumpsys meminfo for this PID
+        meminfo_cmd = f'adb -s {adb_identifier} shell dumpsys meminfo {pid}'
+        meminfo_output = os.popen(meminfo_cmd).read()
+        
+        # Parse the TOTAL line
+        for line in meminfo_output.splitlines():
+            if line.strip().startswith('TOTAL'):
+                parts = line.split()
+                if len(parts) == 9:  # Ensure output format is correct
+                    try:
+                        pss = int(parts[1])
+                        private_dirty = int(parts[2])
+                        private_clean = int(parts[3])
+                        rss = int(parts[5])
+                        heap_alloc = int(parts[7])
+                        
+                        memory_dict["accumulated_pss"] += pss
+                        memory_dict["accumulated_private_dirty"] += private_dirty
+                        memory_dict["accumulated_private_clean"] += private_clean
+                        memory_dict["accumulated_heap_alloc"] += heap_alloc
+                        if is_main_process:
+                            memory_dict["main_process_rss"] = rss
+                            
+                    except (IndexError, ValueError):
+                        blade_logger.logger.warning(f"Warning: error parsing meminfo output for PID {pid}")
+                        continue
+                break
+
+    return memory_dict
