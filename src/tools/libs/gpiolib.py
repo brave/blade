@@ -2,26 +2,34 @@
 # Author: Kleomenis Katevas (kkatevas@brave.com)
 # Date:   20/02/2023
 
-from RPi import GPIO
+import gpiod
 
-# init GPIO
-GPIO.setmode(GPIO.BCM)
-GPIO.setwarnings(False)
+# Define GPIO chip (typically /dev/gpiochip4 for Raspberry Pi 5)
+GPIO_CHIP = "/dev/gpiochip4"
 
 
-##################################################################
-# PUBLIC
-##################################################################
+# initialize pin to output and off
+def init(pin, default_state=1):
+    with gpiod.Chip(GPIO_CHIP) as chip:
+        line = chip.get_line(pin)
+        if not line.is_requested():
+            line.request(consumer="BLaDE", type=gpiod.LINE_REQ_DIR_OUT, default_vals=[default_state])
+        line.set_value(default_state)
 
 
 # write a state (0 or 1) to a device
 def write(pin, state):
-    GPIO.setup(pin, GPIO.OUT)
-    GPIO.output(pin, state)
+    with gpiod.Chip(GPIO_CHIP) as chip:
+        line = chip.get_line(pin)
+        if not line.is_requested():
+            line.request(consumer="BLaDE", type=gpiod.LINE_REQ_DIR_AS_IS, default_vals=[state])
+        line.set_value(state)
 
 
 # read the state of a device (returns 0 or 1)
 def read(pin):
-    GPIO.setup(pin, GPIO.OUT)
-    state = GPIO.input(pin)
-    return state
+    with gpiod.Chip(GPIO_CHIP) as chip:
+        line = chip.get_line(pin)
+        if not line.is_requested():
+            line.request(consumer="BLaDE", type=gpiod.LINE_REQ_DIR_AS_IS, default_vals=[1])
+        return line.get_value()

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # Note:   Bluetooth HID Emulator DBUS Service
 # Author: Kleomenis Katevas (kkatevas@brave.com)

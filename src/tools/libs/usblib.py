@@ -10,20 +10,14 @@ import usb.core
 import usb.util
 from pykush import pykush
 
+from libs import constants
+from libs import logger as blade_logger
+
 
 class USBControl:
 
     def __init__(self, usb_info):
-
-        # required
-        self.id = usb_info["id"]
-
-        # option (only needed if you want ykush control)
-        if "ykush_serial" in usb_info.keys():
-            self.yk = pykush.YKUSH(usb_info["ykush_serial"])
-        else:
-            self.yk = None
-        self.ykush_port = usb_info.get("ykush_port")
+        self.usb_info = usb_info
 
     ##################################################################
     # PUBLIC
@@ -31,51 +25,47 @@ class USBControl:
 
     # check if a usb device is available
     def is_device_available(self):
-        return self.id in self.__get_all_available_ids()
+        return self.usb_info["id"] in self.__get_all_available_ids()
 
     # wait until a usb device becomes available
     def wait_for_device_availability(self, timeout=60 * 5):
-        print("Waiting for device to become available...")
+        blade_logger.logger.info("Waiting for device to become available...")
 
         start_time = time.perf_counter()
         while True:
 
             if self.is_device_available():
-                print("Device is now available.")
+                blade_logger.logger.info("Device is now available.")
                 return True
 
             if time.perf_counter() - start_time > timeout:
-                print(
+                blade_logger.logger.warning(
                     f"Warning: Device failed to become available after waiting for {timeout} seconds."
                 )
                 return False
 
-            time.sleep(1)
+            time.sleep(constants.ONE_SECOND)
 
     # switch the state ('enabled' or 'disabled') of a usb port
     def set_state(self, state_str):
 
-        if self.yk is None:
-            raise Exception(
-                "ykush lib is not initialized. The 'ykush_serial' and 'ykush_port' must be missing from 'usb_info' dict."
-            )
+        # init ykush lib
+        yk = pykush.YKUSH(self.usb_info["ykush_serial"])
 
         state = self.__str_to_state(state_str)
-        self.yk.set_port_state(self.ykush_port, state)
+        yk.set_port_state(self.usb_info.get("ykush_port"), state)
 
     # read the state of a usb port (returns 'enabled' or 'disabled')
     def get_state(self, error_patience=3):
 
-        if self.yk is None:
-            raise Exception(
-                "ykush lib is not initialized. The 'ykush_serial' and 'ykush_port' must be missing from 'usb_info' dict."
-            )
+        # init ykush lib
+        yk = pykush.YKUSH(self.usb_info["ykush_serial"])
 
         # attempt `error_patience` times to get state (in case it reports YKUSH_PORT_STATE_ERROR)
-        state = self.yk.get_port_state(self.ykush_port)
+        state = yk.get_port_state(self.usb_info.get("ykush_port"))
         while state == pykush.YKUSH_PORT_STATE_ERROR and error_patience > 0:
-            time.sleep(1)
-            state = self.yk.get_port_state(self.ykush_port)
+            time.sleep(constants.ONE_SECOND)
+            state = yk.get_port_state(self.usb_info.get("ykush_port"))
             error_patience -= 1
 
         return self.__state_to_str(state)
@@ -94,8 +84,10 @@ class USBControl:
             return "enabled"
 
         if state == pykush.YKUSH_PORT_STATE_ERROR:
+            usb_port = self.usb_info.get("ykush_port")
+            blade_logger.logger.error(f"Error: Persistent YKUSH_PORT_STATE_ERROR while getting state of ykush port '{usb_port}'.")
             raise Exception(
-                f"Error: Persistent YKUSH_PORT_STATE_ERROR while getting state of ykush port '{self.ykush_port}'."
+                f"Error: Persistent YKUSH_PORT_STATE_ERROR while getting state of ykush port '{usb_port}'."
             )
 
         raise Exception(f"Error: Unknown state: '{state}'.")
@@ -109,6 +101,7 @@ class USBControl:
         if state_str == "enabled":
             return pykush.YKUSH_PORT_STATE_UP
 
+        blade_logger.logger.error(f"Error: Unknown state_str: '{state_str}'.")
         raise Exception(f"Error: Unknown state_str: '{state_str}'.")
 
     def __get_all_available_ids(self):

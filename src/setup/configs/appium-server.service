@@ -1,0 +1,13 @@
+[Unit]
+Description=Run Appium Server
+After=multi-user.target
+
+[Service]
+User=blade
+ExecStart=/home/blade/.npm-global/bin/appium --relaxed-security
+Restart=always
+RestartSec=5
+Environment="ANDROID_HOME=/usr/lib/android-sdk"
+
+[Install]
+WantedBy=multi-user.target

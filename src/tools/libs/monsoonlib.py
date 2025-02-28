@@ -10,6 +10,7 @@ import Monsoon.HVPM as Monitor
 import Monsoon.Operations as op
 from libs import gpiolib, tools, usblib
 from Monsoon import sampleEngine
+from libs import logger as blade_logger
 
 # get current file path
 __location__ = os.path.dirname(os.path.realpath(__file__))
@@ -36,7 +37,7 @@ class Monsoon:
         try:
             monitor.setup_usb()
             monitor.fillStatusPacket()
-            print(
+            blade_logger.logger.info(
                 "Connected to Monsoon with Serial Number: "
                 + str(monitor.getSerialNumber())
             )
@@ -44,7 +45,7 @@ class Monsoon:
             return True
 
         except Exception:
-            print("Monsoon is currently unreachable.")
+            blade_logger.logger.error("Monsoon is currently unreachable.")
             self.monitor = None
             return False
 
@@ -65,8 +66,8 @@ class Monsoon:
 
     def init_state(self):
         pin = self.config["gpio_pin"]
-        state = self.__state_to_int("off")
-        gpiolib.write(pin, state)
+        default_state = self.__state_to_int("off")
+        gpiolib.init(pin, default_state)
 
     def read_state(self):
         pin = self.config["gpio_pin"]
@@ -82,7 +83,7 @@ class Monsoon:
 
         # if not connected
         if self.monitor is None:
-            print("Error: You need to call 'connect()' first")
+            blade_logger.logger.error("Error: You need to call 'connect()' first")
             return
 
         self.monitor.setVout(voltage)
@@ -93,7 +94,7 @@ class Monsoon:
 
         # if not connected
         if self.monitor is None:
-            print("Error: You need to call 'connect()' first")
+            blade_logger.logger.error("Error: You need to call 'connect()' first")
             return None
 
         # delete outputs if exists
@@ -122,8 +123,9 @@ class Monsoon:
         curr_time = start_time
 
         # sync barrier
-        sync_filename = os.path.join(os.path.dirname(output), ".t_monsoon")
-        tools.save_value_to_file(str(start_time), sync_filename)
+        custom_path = os.path.dirname(output)
+        sync_filename = ".t_monsoon"
+        tools.save_value_to_file(str(start_time), sync_filename, custom_path=custom_path)
 
         try:
             # iterate on data collection
@@ -135,7 +137,7 @@ class Monsoon:
                 curr_time = time.perf_counter()
 
         except KeyboardInterrupt:
-            print("Collecting measurements was interrupted by user.")
+            blade_logger.logger.info("Collecting measurements was interrupted by user.")
 
         # close everything
         HVengine.periodicStopSampling(closeCSV=True)
@@ -151,6 +153,7 @@ class Monsoon:
         if state == 1:
             return "on"
 
+        blade_logger.logger.error(f"Error: Unknown state: '{state}'.")
         raise Exception(f"Error: Unknown state: '{state}'.")
 
     # converts str state to int (0: off and 1: on in this context)
@@ -162,4 +165,5 @@ class Monsoon:
         if state_str == "on":
             return 1
 
+        blade_logger.logger.error(f"Error: Unknown state: '{state_str}'.")
         raise Exception(f"Error: Unknown state: '{state_str}'.")

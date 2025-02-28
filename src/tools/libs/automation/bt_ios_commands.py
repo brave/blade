@@ -8,6 +8,7 @@ import time
 from libs import btklib
 
 # import subprocess
+from libs import constants
 
 
 btk = btklib.BtkLib()
@@ -29,11 +30,11 @@ def cleanup_device(device):
     pass
 
 
-def type_text(device, text, delay=0.1):
+def type_text(device, text, delay=constants.TENTH_OF_A_SECOND):
     btk.send_text(text, delay=delay)
 
 
-def move_pointer_with_delta(device, x_delta, y_delta, delay=0.01):
+def move_pointer_with_delta(device, x_delta, y_delta, delay=constants.ONE_HUNDREDTH_OF_A_SECOND):
 
     # constants
     step = 100
@@ -59,19 +60,19 @@ def move_pointer_with_delta(device, x_delta, y_delta, delay=0.01):
     time.sleep(delay)
 
 
-def move_pointer(device, abs_x, abs_y, delay=0.01):
+def move_pointer(device, abs_x, abs_y, delay=constants.ONE_HUNDREDTH_OF_A_SECOND):
     # TODO: Needs improvements, doesn't work well
 
     # first reset the pointer
     reset_pointer(device, mode="top-left", delay=delay)
-    time.sleep(0.5)
+    time.sleep(constants.HALF_A_SECOND)
 
     # TODO: refactor using a class that saves the mouse's state
     global mouse_coordinates
 
     # protect from negative coordinates
     if abs_x < 0 or abs_y < 0:
-        raise Exception("Coordinates can only be positive integers.")
+        raise Exception("Error: Coordinates can only be positive integers.")
 
     # set to max if needed
     if abs_x > screen_max[0]:
@@ -91,7 +92,7 @@ def move_pointer(device, abs_x, abs_y, delay=0.01):
     mouse_coordinates = (abs_x, abs_y)
 
 
-def reset_pointer(device, mode="top-left", delay=0.01):
+def reset_pointer(device, mode="top-left", delay=constants.ONE_HUNDREDTH_OF_A_SECOND):
 
     # TODO: refactor using a class that saves the mouse's state
     global mouse_coordinates
@@ -109,7 +110,7 @@ def reset_pointer(device, mode="top-left", delay=0.01):
     elif mode == "bottom-right":
         x, y = step, step
     else:
-        raise Exception("Unknown mode: %s" % mode)
+        raise Exception("Error: Unknown mode: %s" % mode)
 
     # apply
     for _ in range(repeat):
@@ -123,14 +124,14 @@ def reset_pointer(device, mode="top-left", delay=0.01):
 
 def open_app(device, app_name):
     btk.send_shortcut("$SEARCH")
-    time.sleep(2)
+    time.sleep(constants.TWO_SECONDS)
     btk.send_text(app_name)
-    time.sleep(1)
+    time.sleep(constants.ONE_SECOND)
     btk.send_shortcut("$ENTER")
-    time.sleep(2)
+    time.sleep(constants.TWO_SECONDS)
 
 
-def close_app(device, number_of_apps=1, delay=0.1):
+def close_app(device, number_of_apps=1, delay=constants.TENTH_OF_A_SECOND):
 
     # tap at the virtual button
     reset_pointer(device, "bottom-right")
@@ -138,14 +139,14 @@ def close_app(device, number_of_apps=1, delay=0.1):
     move_pointer_with_delta(device, -25, -25)
     time.sleep(delay)
     mouse_click(device)
-    time.sleep(1)
+    time.sleep(constants.ONE_SECOND)
 
     # double tap at home button
     reset_pointer(device, "bottom-right")
     move_pointer_with_delta(device, -100, -60)
     time.sleep(delay)
     double_mouse_click(device)
-    time.sleep(1)
+    time.sleep(constants.ONE_SECOND)
 
     # swipe up
     for _ in range(number_of_apps):
@@ -157,20 +158,20 @@ def close_app(device, number_of_apps=1, delay=0.1):
 
 def mouse_click(device):
     btk.mouse_click()
-    time.sleep(0.1)
+    time.sleep(constants.TENTH_OF_A_SECOND)
     btk.mouse_release()
-    time.sleep(1)
+    time.sleep(constants.ONE_SECOND)
 
 
 def double_mouse_click(device):
     btk.mouse_click()
-    time.sleep(0.1)
+    time.sleep(constants.TENTH_OF_A_SECOND)
     btk.mouse_release()
-    time.sleep(0.1)
+    time.sleep(constants.TENTH_OF_A_SECOND)
     btk.mouse_click()
-    time.sleep(0.1)
+    time.sleep(constants.TENTH_OF_A_SECOND)
     btk.mouse_release()
-    time.sleep(1)
+    time.sleep(constants.ONE_SECOND)
 
 
 def swipe_up(device):
@@ -178,16 +179,16 @@ def swipe_up(device):
 
     # move to lower middle
     reset_pointer(device, "bottom-right")
-    time.sleep(1)
+    time.sleep(constants.ONE_SECOND)
     move_pointer_with_delta(device, -40, -100)
-    time.sleep(1)
+    time.sleep(constants.ONE_SECOND)
 
     btk.mouse_click()
     for _ in range(10):
         move_pointer_with_delta(device, 0, -100)
     btk.mouse_release()
 
-    time.sleep(1)
+    time.sleep(constants.ONE_SECOND)
 
 
 def scroll(device, direction="up"):
@@ -203,7 +204,7 @@ def scroll(device, direction="up"):
     # move to lower middle
     reset_pointer(device, "top-left")
     move_pointer_with_delta(device, 750, 1200)
-    time.sleep(0.1)
+    time.sleep(constants.TENTH_OF_A_SECOND)
 
     btk.mouse_click()
     for _ in range(50):
@@ -218,22 +219,22 @@ def scroll(device, direction="up"):
 def unlock_device(device):
 
     btk.send_shortcut("$ENTER")  # wake up device
-    time.sleep(1)
+    time.sleep(constants.ONE_SECOND)
     btk.send_shortcut("$HOME")  # try to unlock
-    time.sleep(1)
+    time.sleep(constants.ONE_SECOND)
 
     # if pin exists, enter it
     if device.get("pin"):
         btk.send_text(device["pin"])
         btk.send_shortcut("$ENTER")
 
-    time.sleep(2)
+    time.sleep(constants.TWO_SECONDS)
 
 
 def lock_device(device):
 
     btk.send_shortcut("$LOCK")
-    time.sleep(2)
+    time.sleep(constants.TWO_SECONDS)
 
 
 # --- Browser related functions ---
@@ -247,14 +248,14 @@ def brave_clear_cache(device):
 
     # move to options button
     move_pointer_with_delta(device, -140, -80)
-    time.sleep(0.5)
+    time.sleep(constants.HALF_A_SECOND)
 
     # click
     mouse_click(device)
 
     # move to Settings button
     move_pointer_with_delta(device, -100, -350)
-    time.sleep(0.5)
+    time.sleep(constants.HALF_A_SECOND)
 
     # click
     mouse_click(device)
@@ -265,7 +266,7 @@ def brave_clear_cache(device):
     # move to 'Clear Private Data' button
     reset_pointer(device, "bottom-left")
     move_pointer_with_delta(device, 100, -200)
-    time.sleep(0.1)
+    time.sleep(constants.TENTH_OF_A_SECOND)
 
     # click
     mouse_click(device)
@@ -273,7 +274,7 @@ def brave_clear_cache(device):
     # move to 'Clear Private Data' button
     reset_pointer(device, "bottom-left")
     move_pointer_with_delta(device, 600, -650)
-    time.sleep(0.1)
+    time.sleep(constants.TENTH_OF_A_SECOND)
 
     # click
     mouse_click(device)
@@ -281,7 +282,7 @@ def brave_clear_cache(device):
     # click at final message
     reset_pointer(device, "bottom-left")
     move_pointer_with_delta(device, 600, -240)
-    time.sleep(0.1)
+    time.sleep(constants.TENTH_OF_A_SECOND)
 
     # click
     mouse_click(device)
@@ -289,7 +290,7 @@ def brave_clear_cache(device):
     # All cleared! Now go back
     reset_pointer(device, "top-left")
     move_pointer_with_delta(device, 100, 100)
-    time.sleep(0.1)
+    time.sleep(constants.TENTH_OF_A_SECOND)
 
     # click
     mouse_click(device)
@@ -297,7 +298,7 @@ def brave_clear_cache(device):
     # Go to Done button
     reset_pointer(device, "top-right")
     move_pointer_with_delta(device, -100, 100)
-    time.sleep(0.1)
+    time.sleep(constants.TENTH_OF_A_SECOND)
 
     # click
     mouse_click(device)
@@ -331,7 +332,7 @@ def browser_open_url(device, browser, url):
         url = "https://" + url
 
     btk.send_hid_keys(["KEY_LEFTMETA", "KEY_L"])
-    time.sleep(0.5)
+    time.sleep(constants.HALF_A_SECOND)
     btk.send_text(url)
-    time.sleep(0.5)
+    time.sleep(constants.HALF_A_SECOND)
     btk.send_hid_keys(["KEY_ENTER"])

@@ -6,6 +6,7 @@ import json
 import os
 
 from libs import gpiolib
+from libs import logger as blade_logger
 
 # get current file path
 __location__ = os.path.dirname(os.path.realpath(__file__))
@@ -24,7 +25,9 @@ class VoltageSwitch:
             return json.load(f)
 
     def init_state(self):
-        self.switch_all_off()
+        for _, details in self.config.items():
+            pin = details["gpio_pin"]
+            gpiolib.init(pin)
 
     def switch_all_off(self):
         for _, details in self.config.items():
@@ -63,8 +66,9 @@ class VoltageSwitch:
         # get details
         details = self.config.get(channel)
         if details is None:
+            blade_logger.logger.error(f"Error: Channel '{channel}' is not available in 'channels.json'")
             raise Exception(
-                f"Channel '{channel}' is not available in 'channels.json'")
+                f"Error: Channel '{channel}' is not available in 'channels.json'")
 
         pin = details["gpio_pin"]
         return pin
@@ -78,6 +82,7 @@ class VoltageSwitch:
         if state == 0:
             return "on"
 
+        blade_logger.logger.error(f"Error: Unknown state: '{state}'.")
         raise Exception(f"Error: Unknown state: '{state}'.")
 
     # converts str state to int (1: off and 0: on in this context)
@@ -89,4 +94,5 @@ class VoltageSwitch:
         if state_str == "on":
             return 0
 
+        blade_logger.logger.error(f"Error: Unknown state: '{state_str}'.")
         raise Exception(f"Error: Unknown state: '{state_str}'.")
