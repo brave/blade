@@ -7,6 +7,8 @@ import time
 
 import dbus
 from libs import btkkeymap as keymap
+from libs import constants
+from libs import logger as blade_logger
 
 HID_DBUS = "org.yaptb.btkbservice"
 HID_SRVC = "/org/yaptb/btkbservice"
@@ -73,7 +75,8 @@ class BtkLib:
     def _convert_to_signed_byte(self, value):
 
         if value < -127 or value > 127:
-            raise Exception("Value not in range of (-127, 127)")
+            blade_logger.logger.error("Error: Value not in range of (-127, 127)")
+            raise Exception("Error: Value not in range of (-127, 127)")
 
         if value < 0:
             return value + 256
@@ -115,38 +118,38 @@ class BtkLib:
         self._send_hid_mouse_message(self.mouse_buttons, 0, 0)
 
     # send a text, character by character, with a given delay (in seconds)
-    def send_text(self, text, delay=0.1):
+    def send_text(self, text, delay=constants.TENTH_OF_A_SECOND):
 
         for character in text:
 
             hid_keys = keymap.hid_from_character(character)
 
             if hid_keys is None:
-                print(f"WARNING: Unknown key for character: {character}")
+                blade_logger.logger.warning(f"WARNING: Unknown key for character: {character}")
                 return
 
             time.sleep(delay)
             self._send_hid_as_combo(hid_keys)
 
     # send a shortcut, e.g., "$ENTER", with a given delay (in seconds)
-    def send_shortcut(self, shortcut, delay=0.1):
+    def send_shortcut(self, shortcut, delay=constants.TENTH_OF_A_SECOND):
 
         hid_commands = keymap.hid_from_shortcut(shortcut)
 
         if hid_commands is None:
-            print(f"WARNING: Unknown command: {shortcut}")
+            blade_logger.logger.warning(f"WARNING: Unknown command: {shortcut}")
             return
 
         time.sleep(delay)
         self._send_hid_as_combo(hid_commands)
 
     # send a key combo, e.g., ["KEY_LEFTMETA", "KEY_R"], with a given delay (in seconds)
-    def send_hid_keys(self, key_combo, delay=0.1):
+    def send_hid_keys(self, key_combo, delay=constants.TENTH_OF_A_SECOND):
 
         hid_keys = keymap.hid_from_keys(key_combo)
 
         if hid_keys is None:
-            print(f"WARNING: Unknown hid_keys: {hid_keys}")
+            blade_logger.logger.warning(f"WARNING: Unknown hid_keys: {hid_keys}")
             return
 
         time.sleep(delay)

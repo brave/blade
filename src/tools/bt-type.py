@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # Note:   Type using BT keyboard
 # Author: Kleomenis Katevas (kkatevas@brave.com)
@@ -6,26 +6,18 @@
 
 
 import argparse
-import json
 import os
 import sys
 
 from libs import btklib
-
-# get current file path
-__location__ = os.path.dirname(os.path.realpath(__file__))
-
-# read device configuration file
-devices_config_path = os.path.join(__location__, "configs", "devices.json")
-with open(devices_config_path, encoding="utf-8") as f:
-    devices = json.load(f)
+from libs import constants
 
 
 def main(args):
     message = args.message
 
     btk = btklib.BtkLib()
-    btk.send_text(message, delay=0.1)
+    btk.send_text(message, delay=constants.TENTH_OF_A_SECOND)
 
 
 # argument parser

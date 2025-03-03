@@ -1,0 +1,53 @@
+# BLaDE: OS Configurations
+
+This section provides optional but highly recommended configurations for optimizing the operating systems (Android and iOS) of BLaDE devices. These adjustments help reduce OS-induced interference, ensuring more reliable and consistent performance. While these configurations are part of the standard setup process, you may adjust them based on your specific experimental requirements.
+
+
+## Android (tested on Android 14)
+
+- Disable automatic OS updates (Settings > System > System updates > Automatic system updates > Off)
+- Disable automatic app updates (Play Store > Settings > Auto-update apps > Don't auto-update apps)
+- Uninstall unnecessary apps, not relevant to your experiments (Settings > Apps > Select App > Uninstall)
+- Deactivate unnecessary system apps that use background resources (e.g., YouTube, Google Maps) (Settings > Apps > Select App > Disable)
+- Enable Do Not Disturb (Settings > Sound > Do Not Disturb)
+- Disable Adaptive brightness (Settings > Display > Adaptive brightness)
+- Set Brightness to a default level (e.g., 25%) (Settings > Display > Brightness level)
+- Disable Screen timeout (Settings > Display > Screen timeout)
+- Set Dark theme to On or Off (Settings > Display > Dark theme)
+- Disable Screen saver (Settings > Display > Screen saver)
+- Disable Night Light (Settings > Display > Night Light)
+- Set Color mode to Natural (Settings > Display > Colors)
+- Disable Auto-rotate screen (Settings > Display > Auto-rotate screen)
+- Disable Smooth Display (Settings > Display > Smooth Display)
+- Disable Screen protector mode (Settings > Display > Screen protector mode)
+- Disable Adaptive Charging and Adaptive Battery (Settings > Battery > Adaptive preferences)
+- Disable Battery Saver (Settings > Battery > Battery Saver)
+- Disable Background Data for Apps (Settings > Apps > Select App > Mobile Data & Wi-Fi > Background data > Off)
+
+
+## iOS (tested on iOS 18)
+
+- Disable Automatic OS Updates (Settings > General > Software Update > Automatic Updates > Off)
+- Disable Automatic App Updates (Settings > App Store > App Updates > Off)
+- Disable Handoff (Settings > General > Handoff > Off)
+- Enable Silent Mode (Settings > Sounds & Haptics > Silent Mode)
+- Enable Do Not Disturb (Control Center > Do Not Disturb)
+- Disable Notifications (Settings > Notifications > Allow Notifications > Off)
+- Disable StandBy Mode (Settings > StandBy > Off)
+- Disable Location Services (Settings > Privacy & Security > Location Services > Off)
+- Disable Screen Lock (Settings > Display & Brightness > Auto-Lock > Never)
+- Disable Auto-Brightness (Settings > Display & Brightness > Auto-Brightness)
+- Set Brightness to a default level (e.g., 25%) (Settings > Display & Brightness > Brightness)
+- Set a non-animated Wallpaper (Settings > Wallpaper > Choose a New Wallpaper)
+- Disable True Tone (Settings > Display & Brightness > True Tone)
+- Disable Night Shift (Settings > Display & Brightness > Night Shift)
+- Disable Optimized Battery Charging (Settings > Battery > Charging > Optimized Battery Charging > Off)
+- Disable Background App Refresh (Settings > General > Background App Refresh > Off)
+- Disable Raise to Wake (Settings > Display & Brightness > Raise to Wake)
+- Disable Auto Capitalization (Settings > General > Keyboard > Auto-Capitalization > Off)
+- Disable Auto-Correction (Settings > General > Keyboard > Auto-Correction > Off)
+- Disable Analytics & Improvements (Settings > Privacy & Security > Analytics & Improvements > Share with App Developers > Off)
+- Disable Widgets on Lock Screen & Home Screen (Settings > Privacy & Security > Widgets > Off)
+- Disable Siri Suggestions (Settings > Apple Intelligence & Siri > Suggestions > All Off)
+- Disable Significant Locations Tracking (Settings > Privacy & Security > Location Services > System Services > Significant Locations > Off)
+- Disable Apple Intelligence if available (Settings > Apple Intelligence & Siri > Apple Intelligence > Off)

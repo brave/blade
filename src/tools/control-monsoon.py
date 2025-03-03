@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # Note:   Control Monsoon device to enable data collection
 # Author: Kleomenis Katevas (kkatevas@brave.com)
@@ -7,8 +7,12 @@
 import argparse
 import os
 import sys
+import logging
 
 from libs import monsoonlib
+from libs import logger as blade_logger
+from libs import logger as blade_logger
+from libs import tools
 
 ##################################################################
 # MAIN
@@ -16,6 +20,18 @@ from libs import monsoonlib
 
 
 def main(args):
+
+    # log output to a logfile if enabled
+    if args.log_output:
+        filename = os.path.join(args.output, "log.txt")
+        tools.ensure_path(args.output, clear=True)
+        blade_logger.add_file_handler(log_file=filename)
+
+    # set log-level if specified
+    if args.log_level:
+        blade_logger.set_logging_level(level=args.log_level)
+
+    blade_logger.logger.info("Control-Monsoon")
 
     # init lib
     monsoon = monsoonlib.Monsoon()
@@ -28,7 +44,7 @@ def main(args):
     # --read-state
     if args.read_state:
         state = monsoon.read_state()
-        print(state)
+        blade_logger.logger.info(state)
         return
 
     # --switch
@@ -39,16 +55,16 @@ def main(args):
 
     # check if monsoon is available
     if not monsoon.is_available():
-        sys.exit("Error: Monsoon is not available.")
+        blade_logger.logger.critical("Error: Monsoon is not available.")
 
     # connect to monsoon
     if not monsoon.connect():
-        sys.exit("Error: Could not connect to Monsoon")
+        blade_logger.logger.critical("Error: Could not connect to Monsoon")
 
     # Set voltage if needed
     voltage = args.set_voltage
     if voltage is not None:
-        print("Setting voltage to: " + str(voltage))
+        blade_logger.logger.info("Setting voltage to: " + str(voltage))
         monsoon.set_voltage(voltage)
 
     # Collect measurements if needed
@@ -57,11 +73,11 @@ def main(args):
         duration = args.duration
         t_sleep = args.t_sleep
         if duration:
-            print(f"Collecting measurements for {duration} secs...")
+            blade_logger.logger.info(f"Collecting measurements for {duration} secs...")
         else:
-            print(f"Collecting measurements...")
+            blade_logger.logger.info(f"Collecting measurements...")
         start_time = monsoon.collect_measurements(output, duration, t_sleep)
-        print(f"Done! .t_monsoon: {start_time}")
+        blade_logger.logger.info(f"Done! .t_monsoon: {start_time}")
 
 
 # argument parser
@@ -129,6 +145,20 @@ def __parse_arguments(args):
         "--output",
         default="measurements.csv",
         help="Output file in csv. Format: time (Sec), current (mA), voltage (V).",
+    )
+
+    parser.add_argument(
+        "--log-output",
+        required=False,
+        action='store_true',
+        help="Set flag to write logging output to a log file located in the default output folder. Default is False.",
+    )
+
+    parser.add_argument(
+        "--log-level",
+        choices=["debug", "info", "warning", "error", "critical"],
+        default="",
+        help="This flag allows to change the log-level. By default only levels higher than warning will be written to the log.",
     )
 
     return parser.parse_args(args)

@@ -1,6 +1,0 @@
-meta-llama_Llama-2-7b-chat-hf-q3f16_1
-meta-llama_Llama-2-7b-chat-hf-q4f16_1
-google_gemma-2b-it-q3f16_1
-google_gemma-2b-it-q4f16_1
-google_gemma-7b-it-q4f16_1
-google_gemma-7b-it-q3f16_1

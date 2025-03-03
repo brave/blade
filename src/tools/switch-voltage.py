@@ -99,3 +99,4 @@ if __name__ == "__main__":
     # parse args
     arguments = __parse_arguments(sys.argv[1:])
     main(arguments)
+    

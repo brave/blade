@@ -7,6 +7,9 @@ import time
 
 from flask import Flask
 
+from libs import constants
+from libs import logger as blade_logger
+
 
 class RestAwaitApp:
 
@@ -49,7 +52,7 @@ class RestAwaitApp:
 
     def set_await(self, timeout=None):
         if self.continue_execution is not None:
-            print(
+            blade_logger.logger.error(
                 "Error: An await event is already set. You need to call continue_execution() first."
             )
             return False
@@ -73,6 +76,6 @@ if __name__ == "__main__":
     # Only used for testing purposes.
 
     app = RestAwaitApp()
-    time.sleep(5)
+    time.sleep(constants.FIVE_SECONDS)
     app.set_await()
     print("Continue execution!", flush=True)
