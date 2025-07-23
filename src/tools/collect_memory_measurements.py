@@ -16,14 +16,14 @@ parser = argparse.ArgumentParser(description="Monitor Android app memory usage."
 parser.add_argument("device_id", help="The serial number of the connected device.")
 parser.add_argument("package_name", help="The package name of the Android app to monitor.")
 parser.add_argument("output", help="Output CSV file name.")
-parser.add_argument("-i", "--interval", type=int, default=constants.ONE_SECOND*1000, help="Time interval (in milliseconds) between memory checks. Default is 1000 ms.")
+parser.add_argument("-i", "--interval", type=int, default=constants.MEMORY_MEASUREMENTS_DEFAULT_INTERVAL, help=f"Time interval (in seconds) between memory checks. Default is {constants.MEMORY_MEASUREMENTS_DEFAULT_INTERVAL} sec.")
 args = parser.parse_args()
 
 # Assign arguments to variables
 device_id = args.device_id
 package_name = args.package_name
 output_file = args.output
-interval_ms = args.interval  # Interval in milliseconds
+interval = args.interval  # Interval in seconds
 
 # Open CSV file for logging
 with open(output_file, "w", newline="") as csvfile:
@@ -60,8 +60,8 @@ with open(output_file, "w", newline="") as csvfile:
                 writer.writerow({"timestamp": epoch_timestamp, "pss": pss_total, "rss": rss_total})
                 csvfile.flush()
 
-            # Wait for the specified interval in milliseconds
-            time.sleep(interval_ms / 1000.0)
+            # Wait for the specified interval in seconds
+            time.sleep(interval)
 
         except subprocess.CalledProcessError:
             # Continue if there are issues running adb

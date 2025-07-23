@@ -49,7 +49,7 @@ def stop_collecting_adb_measurements():
             blade_logger.logger.warning("Warning: Could not stop adb measurements. Process already stopped.")
 
 
-def collect_memory_measurements(adb_identifier, app_package, output_file, interval_ms=constants.ONE_SECOND*1000):
+def collect_memory_measurements(adb_identifier, app_package, output_file, interval=constants.MEMORY_MEASUREMENTS_DEFAULT_INTERVAL):
 
     # collect measurements
     script = os.path.join(__location__, "../collect_memory_measurements.py")
@@ -59,7 +59,7 @@ def collect_memory_measurements(adb_identifier, app_package, output_file, interv
             adb_identifier,
             app_package,
             output_file,
-            f"--interval={interval_ms}",
+            f"--interval={interval}",
         ]
     )
 
@@ -81,12 +81,12 @@ def stop_memory_measurements():
 
 
 # start collecting monsoon measurements
-def collect_monsoon_measurements(output_file):
+def collect_monsoon_measurements(output_file, granularity=1):
 
     # collect measurements
     script = os.path.join(__location__, "../control-monsoon.py")
     process = subprocess.Popen(
-        [script, "--collect-measurements", "--output", output_file]
+        [script, "--collect-measurements", "--output", output_file, "--granularity", str(granularity)]
     )
 
     # save pid to file
@@ -113,8 +113,8 @@ def connect_to_bt_device(bt_mac_address):
 
     # collect measurements
     script = os.path.join(__location__, "../bt-connect.py")
-    process = subprocess.Popen(["sudo", script, "--device", bt_mac_address])
-    time.sleep(constants.FIVE_SECONDS)
+    process = subprocess.Popen(["sudo", script, bt_mac_address])
+    time.sleep(constants.CONTROL_DEVICE_WAIT_TIME_AFTER_ASYNC_CALLS)
 
     # save pid to file
     filename = ".bt-connect_pid"
@@ -133,14 +133,15 @@ def disconnect_from_bt_device():
             blade_logger.logger.warning(
                 "Warning: Could not disconnect from Bluetooth device. Process already stopped."
             )
-    time.sleep(constants.FIVE_SECONDS)
+    time.sleep(constants.CONTROL_DEVICE_WAIT_TIME_AFTER_ASYNC_CALLS)
+
 
 # enable remote control through NoVNC web interface
 def enable_remote_control(device_id):
     
     script = os.path.join(__location__, "../enable_remote_control.sh")
     subprocess.Popen([script, device_id])
-    time.sleep(constants.FIVE_SECONDS)
+    time.sleep(constants.CONTROL_DEVICE_WAIT_TIME_AFTER_ASYNC_CALLS)
 
 
 # disable remote control through NoVNC web interface
@@ -148,15 +149,16 @@ def disable_remote_control():
 
     script = os.path.join(__location__, "../disable_remote_control.sh")
     os.system(script)
-    time.sleep(constants.ONE_SECOND)
+    time.sleep(constants.CONTROL_DEVICE_WAIT_TIME_AFTER_ASYNC_CALLS)
 
-def start_pageload_proxy(browser_name, server_ip=None, port=8443, verbose=False):
-    """Start mitmproxy with inject script for specific browser
+
+def start_pageload_proxy(browser_name, server_ip=None, port=constants.PROXY_DEFAULT_SERVER_PORT, verbose=False):
+    f"""Start mitmproxy with inject script for specific browser
     
     Args:
         browser_name: Name of the browser being tested
         server_ip: Optional IP address for the server (default: auto-detect)
-        port: Port number for the server (default: 8443)
+        port: Port number for the server
     """
 
     # Set environment variables for the inject script
@@ -184,6 +186,7 @@ def start_pageload_proxy(browser_name, server_ip=None, port=8443, verbose=False)
     filename = ".pageload_proxy_pid"
     tools.save_value_to_file(process.pid, filename)
 
+
 def stop_pageload_proxy():
     """Stop the mitmproxy process"""
     pid = tools.read_value_from_file(".pageload_proxy_pid")
@@ -193,20 +196,29 @@ def stop_pageload_proxy():
         except OSError:
             blade_logger.logger.warning("Warning: Could not stop pageload proxy. Process already stopped.")
 
-def start_pageload_server(output_dir, port=8443):
+
+def start_pageload_server(output_dir, port=constants.PROXY_DEFAULT_SERVER_PORT, cert_path=constants.PROXY_DEFAULT_CERTIFICATE_PATH, key_path=constants.PROXY_DEFAULT_PRIVATE_KEY_PATH):
     """Start the HTTPS server for collecting measurements"""
+
+    # Check if cert and key exist
+    if not os.path.exists(cert_path):
+        raise FileNotFoundError(f"SSL certificate not found at {cert_path}")
+    if not os.path.exists(key_path):
+        raise FileNotFoundError(f"SSL key not found at {key_path}")
+
     server_script = os.path.join(__location__, "../pageload-server.py")
     process = subprocess.Popen([
-        "python3", server_script,
+        server_script,
         "--port", str(port),
-        "--cert", "cert.pem",
-        "--key", "key.pem",
+        "--cert", cert_path,
+        "--key", key_path,
         "--output", output_dir,
     ])
 
     # Save pid to file
     filename = ".pageload_server_pid"
     tools.save_value_to_file(process.pid, filename)
+
 
 def stop_pageload_server():
     """Stop the pageload server and collect results"""

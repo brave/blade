@@ -11,8 +11,8 @@ import logging
 
 from libs import monsoonlib
 from libs import logger as blade_logger
-from libs import logger as blade_logger
 from libs import tools
+from libs import constants
 
 ##################################################################
 # MAIN
@@ -56,35 +56,41 @@ def main(args):
     # check if monsoon is available
     if not monsoon.is_available():
         blade_logger.logger.critical("Error: Monsoon is not available.")
+        sys.exit(1)
 
     # connect to monsoon
     if not monsoon.connect():
         blade_logger.logger.critical("Error: Could not connect to Monsoon")
+        sys.exit(1)
 
     # Set voltage if needed
     voltage = args.set_voltage
     if voltage is not None:
-        blade_logger.logger.info("Setting voltage to: " + str(voltage))
+        blade_logger.logger.info("Setting output voltage (V) to: " + str(voltage))
         monsoon.set_voltage(voltage)
 
     # Collect measurements if needed
     if args.collect_measurements:
         output = args.output
+        format = args.format
         duration = args.duration
-        t_sleep = args.t_sleep
+        granularity = args.granularity
         if duration:
             blade_logger.logger.info(f"Collecting measurements for {duration} secs...")
         else:
             blade_logger.logger.info(f"Collecting measurements...")
-        start_time = monsoon.collect_measurements(output, duration, t_sleep)
+        start_time = monsoon.collect_measurements(output, format=format, duration=duration, granularity=granularity)
         blade_logger.logger.info(f"Done! .t_monsoon: {start_time}")
+
+    # disconnect from monsoon
+    monsoon.disconnect()
 
 
 # argument parser
 def __parse_arguments(args):
 
     parser = argparse.ArgumentParser(
-        description="Control Monsoon Power Monitor devices (HV and LV versions)."
+        description="Control Monsoon Power Monitor devices (HVPM version)."
     )
 
     parser.add_argument(
@@ -113,38 +119,50 @@ def __parse_arguments(args):
         "-sv",
         "--set-voltage",
         type=float,
+        metavar=f"[{constants.MONSOON_MIN_VOLTAGE}-{constants.MONSOON_MAX_VOLTAGE}]",
         default=None,
-        help="Set or change the voltage (0 to deactivate).",
+        help=f"Set or change the output voltage (V) in range {constants.MONSOON_MIN_VOLTAGE}-{constants.MONSOON_MAX_VOLTAGE}. Set to '0' to deactivate power output.",
     )
 
     parser.add_argument(
         "-cm",
         "--collect-measurements",
         action="store_true",
-        help="Start collecting measurements",
+        help="Start collecting measurements. If no duration is provided, measurements will be collected indefinitely. Exact `start_time` of data collection is stored at `.t_monsoon` file in the output directory, and as metadata if parquet format is selected.",
     )
 
     parser.add_argument(
         "-d",
         "--duration",
         type=int,
+        metavar="[0-inf]",
         default=None,
-        help="Data collectuon duration (in sec)",
+        help="Data collection duration (in sec). Default is None (infinite).",
     )
 
     parser.add_argument(
-        "-ts",
-        "--t-sleep",
+        "-g",
+        "--granularity",
         type=int,
-        default=0,
-        help="Sleep per 100 samples, in ms. Needed for subsampling.",
+        choices=range(1, constants.MONSOON_COLLECTED_SAMPLES_PER_BATCH + 1),
+        metavar=f"[1-{constants.MONSOON_COLLECTED_SAMPLES_PER_BATCH}]",
+        default=1,
+        help=f"Downsample collected data by this factor. 1 means no downsampling (approx 5kHz in HVPM model), 10 means 1 sample every 10 samples. Must be between 1 and {constants.MONSOON_COLLECTED_SAMPLES_PER_BATCH}. Default is 1.",
+    )
+
+    parser.add_argument(
+        "-f",
+        "--format",
+        choices=["csv", "parquet"],
+        default="csv",
+        help="Output file format. Default is 'csv'.",
     )
 
     parser.add_argument(
         "-o",
         "--output",
         default="measurements.csv",
-        help="Output file in csv. Format: time (Sec), current (mA), voltage (V).",
+        help="Output file in csv or parquet format. Format: time (sec), current (mA), voltage (V). Default is 'measurements.csv'.",
     )
 
     parser.add_argument(

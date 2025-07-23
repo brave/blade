@@ -260,9 +260,7 @@ def __parse_arguments(args):
         description="Bluetooth HID Emulator DBUS Service.")
 
     parser.add_argument(
-        "-d",
-        "--device",
-        required=True,
+        "device",
         help="Bluetooth device mac address. Device requires to be paired and authenticated.",
     )
 

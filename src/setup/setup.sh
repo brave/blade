@@ -93,6 +93,7 @@ cd ..
 # Monsoon Power Monitor (https://github.com/msoon/PyMonsoon)
 sudo apt install -y python3-scipy
 sudo pip install Monsoon --break-system-packages
+pip install fastparquet --break-system-packages
 
 # Bluetooth Control support
 pip install readchar --break-system-packages

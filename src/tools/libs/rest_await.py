@@ -76,6 +76,6 @@ if __name__ == "__main__":
     # Only used for testing purposes.
 
     app = RestAwaitApp()
-    time.sleep(constants.FIVE_SECONDS)
+    time.sleep(constants.REST_AWAIT_SERVER_WAIT_TIME_AFTER_STARTING)
     app.set_await()
     print("Continue execution!", flush=True)

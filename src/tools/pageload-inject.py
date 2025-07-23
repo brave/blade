@@ -20,21 +20,29 @@ import re
 from libs import constants
 
 # Fetch browser name, IP, and port from environment variables, browser_name should be updated before a new browser is going to be tested
-browser_name = os.getenv("BROWSER_NAME", "Unknown")
-server_ip = os.getenv("SERVER_IP", "127.0.0.1")
-server_port = os.getenv("SERVER_PORT", "8443")
+browser_name = os.getenv("BROWSER_NAME", constants.PROXY_DEFAULT_BROWSER_NAME)
+server_ip = os.getenv("SERVER_IP", constants.PROXY_DEFAULT_SERVER_IP)
+server_port = os.getenv("SERVER_PORT", str(constants.PROXY_DEFAULT_SERVER_PORT))
+
 
 def response(flow: http.HTTPFlow) -> None:
-    # Check if the response is HTML and not part of an iframe
-    if "text/html" in flow.response.headers.get("content-type", "") and flow.request.headers.get("sec-fetch-dest", "") != "iframe":
+
+    # Check if the response is HTML, not part of an iframe, and not a redirect
+    if (flow.response.status_code not in [301, 302, 303, 307, 308] and 
+        "text/html" in flow.response.headers.get("content-type", "") and 
+        flow.request.headers.get("sec-fetch-dest", "") != "iframe"):
         # Remove Content-Security-Policy header
         if "Content-Security-Policy" in flow.response.headers:
             del flow.response.headers["Content-Security-Policy"]
+            
+        # Get the content using flow.response.text to avoid manual decoding
+        content = flow.response.text
+        
         # Remove CSP meta tag if present
-        flow.response.text = re.sub(
+        content = re.sub(
             r'<meta[^>]*http-equiv=["\']Content-Security-Policy["\'][^>]*>',
             '',
-            flow.response.text,
+            content,
             flags=re.IGNORECASE
         )
 
@@ -61,30 +69,48 @@ def response(flow: http.HTTPFlow) -> None:
         (function() {{
             const browserName = "{browser_name}";
 
-            window.onload = function() {{
+            // Use a unique identifier for this page visit - timestamp + random for uniqueness
+            const pageVisitId = new Date().getTime() + '-' + Math.random().toString(36).substring(2, 15);
+            
+            // Get a URL-specific key for storage
+            const getStorageKey = function() {{
+                // Use pathname and search params as the key to differentiate URLs
+                return 'blade_metrics_' + window.location.pathname + window.location.search;
+            }};
+            
+            // Check if metrics have already been reported for this specific URL
+            const reportCheck = function() {{
+                const storageKey = getStorageKey();
+                const reported = sessionStorage.getItem(storageKey);
+                if (reported) {{
+                    console.log("Metrics already reported for this specific URL:", window.location.href);
+                    return true;
+                }}
+                return false;
+            }};
+
+            // Mark this specific URL as reported in sessionStorage
+            const markAsReported = function() {{
+                const storageKey = getStorageKey();
+                sessionStorage.setItem(storageKey, pageVisitId);
+                console.log("Marked URL as reported:", window.location.href);
+            }};
+
+            // Use addEventListener to preserve any existing onload handlers
+            window.addEventListener('load', function() {{
                 setTimeout(() => {{
+                    // Exit early if this specific URL was already reported
+                    if (reportCheck()) {{
+                        return;
+                    }}
+                    
                     const timing = _originalPerformance.timing;
                     const loadTime = timing.loadEventEnd - timing.navigationStart;
                     
+                    // Mark as reported immediately to prevent race conditions
+                    markAsReported();
 
                     blade_domContentPerformance = _originalPerformance.getEntriesByType("navigation")[0];
-
-                    // Log all performance metrics
-                    // console.log("Start Time:", timing.navigationStart);
-                    // console.log("End Time:", timing.loadEventEnd);
-                    // console.log("Page Load Time:", loadTime + " ms");
-                    // console.log("Request Start:", blade_domContentPerformance.requestStart);
-                    // console.log("Response End:", blade_domContentPerformance.responseEnd);
-                    // console.log("DOM Interactive:", blade_domContentPerformance.domInteractive);
-                    // console.log("DOM Content Loaded Start:", blade_domContentPerformance.domContentLoadedEventStart);
-                    // console.log("DOM Content Loaded End:", blade_domContentPerformance.domContentLoadedEventEnd);
-                    // console.log("DOM Complete:", blade_domContentPerformance.domComplete);
-                    // console.log("Load Event Start:", blade_domContentPerformance.loadEventStart);
-                    // console.log("Load Event End:", blade_domContentPerformance.loadEventEnd);
-                    // console.log("Total Duration:", blade_domContentPerformance.duration);
-                    // console.log("LCP class name:", blade_lcp.element.className);
-                    // console.log("LCP load time:", blade_lcp.loadTime + " ms");
-                    // console.log("LCP render time:", blade_lcp.renderTime + " ms");
 
                     // Server URL based on dynamic IP and port
                     const serverUrl = "https://{server_ip}:{server_port}/";
@@ -94,6 +120,7 @@ def response(flow: http.HTTPFlow) -> None:
                         url: window.location.href,
                         loadTime: loadTime,
                         browser: browserName,
+                        pageVisitId: pageVisitId, // Include the unique ID
                         requestStart: blade_domContentPerformance.requestStart,
                         responseEnd: blade_domContentPerformance.responseEnd,
                         domInteractive: blade_domContentPerformance.domInteractive,
@@ -103,9 +130,9 @@ def response(flow: http.HTTPFlow) -> None:
                         loadEventStart: blade_domContentPerformance.loadEventStart,
                         loadEventEnd: blade_domContentPerformance.loadEventEnd,
                         duration: blade_domContentPerformance.duration,
-                        lcpClassName: blade_lcp.element.className,
-                        lcpLoadTime: blade_lcp.loadTime,
-                        lcpRenderTime: blade_lcp.renderTime
+                        lcpClassName: blade_lcp && blade_lcp.element ? encodeURIComponent(blade_lcp.element.className) : "",
+                        lcpLoadTime: blade_lcp ? blade_lcp.loadTime : 0,
+                        lcpRenderTime: blade_lcp ? blade_lcp.renderTime : 0
                     }};
 
                     // Send data to the server
@@ -124,16 +151,16 @@ def response(flow: http.HTTPFlow) -> None:
                     }}).catch(error => {{
                         console.error("Error sending data:", error);
                     }});
-                }}, {constants.FIVE_SECONDS*1000});  // 5-second delay in milliseconds, otherwise performance.timing.loadEventEnd sometimes returns 0
-            }};
+                }}, {constants.PAGELOAD_PROXY_WAIT_TIME_AFTER_STARTING*1000});  // delay in milliseconds, otherwise performance.timing.loadEventEnd sometimes returns 0
+            }});
         }})();
         </script>
         """
         # Inject the fetch save script after the opening head tag
-        flow.response.text = flow.response.text.replace("<head>", "<head>" + fetch_save_script)
-        # Inject the main script before the closing body tag
-        flow.response.text = flow.response.text.replace("</body>", script + "</body>")
+        content = re.sub(r'<head(\s[^>]*)?>', r'<head\1>' + fetch_save_script + script, content, flags=re.IGNORECASE)
+        # Set the modified content back to the response
+        #content = re.sub(r'</body(\s[^>]*)?>', fetch_save_script + script + r'</body\1>', content, flags=re.IGNORECASE)
+        flow.response.text = content
     else:
         # Stream non-HTML responses
         flow.response.stream = True
-

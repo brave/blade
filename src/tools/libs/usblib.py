@@ -44,7 +44,7 @@ class USBControl:
                 )
                 return False
 
-            time.sleep(constants.ONE_SECOND)
+            time.sleep(constants.USB_LIBRARY_CHECK_FOR_DEVICE_AVAILABILITY_FREQUENCY)
 
     # switch the state ('enabled' or 'disabled') of a usb port
     def set_state(self, state_str):
@@ -56,7 +56,7 @@ class USBControl:
         yk.set_port_state(self.usb_info.get("ykush_port"), state)
 
     # read the state of a usb port (returns 'enabled' or 'disabled')
-    def get_state(self, error_patience=3):
+    def get_state(self, error_patience=constants.USB_LIBRARY_GET_STATE_ERROR_PATIENCE):
 
         # init ykush lib
         yk = pykush.YKUSH(self.usb_info["ykush_serial"])
@@ -64,7 +64,7 @@ class USBControl:
         # attempt `error_patience` times to get state (in case it reports YKUSH_PORT_STATE_ERROR)
         state = yk.get_port_state(self.usb_info.get("ykush_port"))
         while state == pykush.YKUSH_PORT_STATE_ERROR and error_patience > 0:
-            time.sleep(constants.ONE_SECOND)
+            time.sleep(constants.USB_LIBRARY_GET_STATE_RETRY_TIMEOUT)
             state = yk.get_port_state(self.usb_info.get("ykush_port"))
             error_patience -= 1
 

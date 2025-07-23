@@ -1,5 +1,6 @@
 # BLaDE: Setup
 
+
 ## Hardware Requirements
 
 These are the main components required to create a BLaDE node:
@@ -12,6 +13,7 @@ These are the main components required to create a BLaDE node:
 - Externally powered USB Hub (e.g., [this](https://www.amazon.co.uk/gp/product/B07KFGY2CR)) (optional, if you want to connect multiple YKUSH boards, or if the power from the Pi is not sufficient)
 
 Additional components such as cables, connectors, external SSD, and microSD card are also required.
+
 
 ## System Design
 
@@ -26,11 +28,11 @@ The YKUSH 3 USB Switchable Hub is connected to the Raspberry Pi via USB (USB 3.0
 
 ## Setup the BLaDE node
 
-Install the latest version of [Raspberry Pi OS (64-bit) with Desktop](https://www.raspberrypi.com/software/operating-systems/#raspberry-pi-os-64-bit) on a Raspberry Pi connected to the Internet over Ethernet.
+Install the latest version of [Raspberry Pi OS (64-bit) with Desktop](https://www.raspberrypi.com/software/operating-systems/#raspberry-pi-os-64-bit) on a Raspberry Pi connected to the Internet over Ethernet. You can use [Raspberry Pi Imager](https://www.raspberrypi.com/software/) to prepare the SD card, or, for headless configurations, please refer to [that article](https://www.raspberrypi.com/documentation/computers/configuration.html#configuring-a-user).
 
-Configure the user as `blade` with a password of your choice. For headless configurations please refer to [that article](https://www.raspberrypi.com/documentation/computers/configuration.html#configuring-a-user).
+Configure the user as `blade` with a password of your choice.
 
-Connect to the Pi via SSH and (optionally but highly recommendable) copy your local pub key to `.ssh/authorized_keys`.
+Connect to the Pi via SSH and (optionally but highly recommended) copy your local pub key to `.ssh/authorized_keys` and disable password authentication from `/etc/ssh/sshd_config`.
 
 Run the following commands:
 
@@ -92,7 +94,6 @@ Next, add a new entry with the device details at `src/tools/configs/devices.json
         "friendly_name": "Galaxy S23",
         "type": "Samsung Galaxy S23",
         "supported_automations": ["ADB", "BT-Android"],
-        "wifi": "5Ghz",
         "adb_identifier": "RFSVC5KV7PW",
         "ip": "192.168.1.66",
         "battery_capacity": 3785,
