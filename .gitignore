@@ -1,5 +1,3 @@
-experiment_outputs/
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -158,4 +156,3 @@ dmypy.json
 
 # BLaDE related
 .pid_files/
-experiments/browser-eval/tools/browser_profiles/*

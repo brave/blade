@@ -33,6 +33,11 @@ def get_devices():
 
 
 def switch(device, state, auto_recharge_battery_level=None):
+    
+    # check auto-recharge battery level
+    if auto_recharge_battery_level is not None and (auto_recharge_battery_level < 0.00 or auto_recharge_battery_level > 1.00):
+        blade_logger.logger.error(f"Error: Auto-recharge battery level must be between 0.00 and 1.00")
+        raise Exception(f"Error: Auto-recharge battery level must be between 0.00 and 1.00")
 
     # init libs
     monsoon = monsoonlib.Monsoon()
@@ -71,7 +76,7 @@ def switch(device, state, auto_recharge_battery_level=None):
 
         # switch voltage to the device
         vs.switch_to(channel)
-        time.sleep(constants.ONE_SECOND)
+        time.sleep(constants.CONTROL_DEVICE_DEFAULT_WAIT_TIME)
 
         # set voltage to the device
         voltage = monsoon_info["voltage"]
@@ -82,7 +87,7 @@ def switch(device, state, auto_recharge_battery_level=None):
         if not usb_control.wait_for_device_availability():
             blade_logger.logger.error("Error: Device is not available.")
             raise Exception("Error: Device is not available.")
-        time.sleep(constants.FIVE_SECONDS)  # Extra 5 secs are needed atop of the above
+        time.sleep(constants.CONTROL_DEVICE_DEVICE_AVAILABLE_WAIT_TIME)  # Extra time needed atop of the above
 
         # report battery level at boot
         if device["os"] == "Android":
@@ -98,22 +103,22 @@ def switch(device, state, auto_recharge_battery_level=None):
         if device["os"] == "iOS":
             blade_logger.logger.info("Syncing device time with Pi...")
             subprocess.run("idevicedate -c", shell=True, check=True, text=True)
-            time.sleep(constants.ONE_SECOND)
+            time.sleep(constants.CONTROL_DEVICE_DEFAULT_WAIT_TIME)
 
         # if iOS, unlock device to authorize USB connection
         if device["os"] == "iOS":
 
             # bt connect
             acalls.connect_to_bt_device(device["bt_mac_address"])
-            time.sleep(constants.ONE_SECOND)
+            time.sleep(constants.CONTROL_DEVICE_DEFAULT_WAIT_TIME)
 
             # screen unlock
             change_screen_lock(device, "unlock")
-            time.sleep(constants.ONE_SECOND)
+            time.sleep(constants.CONTROL_DEVICE_DEFAULT_WAIT_TIME)
 
             # lock again
             change_screen_lock(device, "lock")
-            time.sleep(constants.ONE_SECOND)
+            time.sleep(constants.CONTROL_DEVICE_DEFAULT_WAIT_TIME)
 
             # bt disconnect
             acalls.disconnect_from_bt_device()
@@ -128,8 +133,6 @@ def switch(device, state, auto_recharge_battery_level=None):
         if vs.read_state(channel) == "off":
             blade_logger.logger.warning("Warning: Device appears to be 'off' already.")
 
-        # TODO: disable adb-over-wifi if needed
-
         # kill all 'collect_', and other related processes, in case they are still running
         os.system("pkill -f collect_")
         os.system("pkill -f mitmdump")
@@ -137,7 +140,23 @@ def switch(device, state, auto_recharge_battery_level=None):
         os.system("pkill -f control-monsoon.py")
 
         # kill related processes for remote control (if alive)
-        disable_remote_control()
+        if device["os"] == "Android":
+            disable_remote_control()
+
+        # disable adb-over-wifi if needed
+        if device["os"] == "Android":
+            adb_connection_state = adblib.get_device_adb_connection_state(device)
+            if adb_connection_state == "wifi":
+                adblib.disable_adb_over_wifi(device)
+                time.sleep(constants.CONTROL_DEVICE_DEFAULT_WAIT_TIME)
+            elif adb_connection_state == None:
+                blade_logger.logger.warning("Warning: Device is not connected via ADB.")
+        
+        # power off device
+        if device["os"] == "Android":
+            blade_logger.logger.info("Powering off device...")
+            adblib.power_off_device(device, connection="usb")
+            time.sleep(constants.CONTROL_DEVICE_POWER_OFF_WAIT_TIME)
 
         # disable USB
         if usb_control.get_state() == "enabled":
@@ -151,7 +170,7 @@ def switch(device, state, auto_recharge_battery_level=None):
                 monsoon.connect()
                 monsoon.set_voltage(0)
                 monsoon.disconnect()
-                time.sleep(constants.ONE_SECOND)
+                time.sleep(constants.CONTROL_DEVICE_DEFAULT_WAIT_TIME)
 
             except Exception as e:
                 blade_logger.logger.warning(f"Warning: {e}")
@@ -209,8 +228,19 @@ def read_state(device):
     return vs.read_state(channel)
 
 
-def start_measuring(device, output_path, auto_recharge_battery_level=None):
+def start_measuring(device, output_path, auto_recharge_battery_level=None, granularity=1):
     
+    # check granularity
+    if granularity < 1 or granularity > constants.MONSOON_COLLECTED_SAMPLES_PER_BATCH:
+        blade_logger.logger.error(f"Error: Granularity must be between 1 and {constants.MONSOON_COLLECTED_SAMPLES_PER_BATCH}")
+        raise Exception(f"Error: Granularity must be between 1 and {constants.MONSOON_COLLECTED_SAMPLES_PER_BATCH}")
+    
+    # check auto-recharge battery level
+    if auto_recharge_battery_level is not None and (auto_recharge_battery_level < 0.00 or auto_recharge_battery_level > 1.00):
+        blade_logger.logger.error(f"Error: Auto-recharge battery level must be between 0.00 and 1.00")
+        raise Exception(f"Error: Auto-recharge battery level must be between 0.00 and 1.00")
+
+    # ensure output path exists
     tools.ensure_path(output_path)
 
     # check state first
@@ -231,17 +261,17 @@ def start_measuring(device, output_path, auto_recharge_battery_level=None):
     # init device
     if device["os"] == "Android":
         adblib.enable_adb_over_wifi(device)
-        time.sleep(constants.THREE_SECONDS)
+        time.sleep(constants.SWITCH_ADB_CONNECTION_STATE_TIMEOUT)
 
-        adb_identifier = f"{device['ip']}:5555"
+        adb_identifier = f"{device['ip']}:{constants.ADB_OVER_WIFI_DEFAULT_PORT}"
 
         # SW-based measuring using ADB
         sw_power_enabled = True
         output_file = os.path.join(output_path, "measurements_adb.csv")
         acalls.collect_adb_measurements(
-            adb_identifier, constants.THREE_SECONDS, sw_power_enabled, output_file
+            adb_identifier, constants.ADB_MEASUREMENTS_DEFAULT_SAMPLE_DELAY, sw_power_enabled, output_file
         )
-        time.sleep(constants.ONE_SECOND)
+        time.sleep(constants.CONTROL_DEVICE_DEFAULT_WAIT_TIME)
 
     elif device["os"] == "iOS":
         pass
@@ -252,7 +282,7 @@ def start_measuring(device, output_path, auto_recharge_battery_level=None):
 
     # disable USB
     usb_control.set_state("disabled")
-    time.sleep(constants.ONE_SECOND)
+    time.sleep(constants.CONTROL_DEVICE_DEFAULT_WAIT_TIME)
 
     # HW-based measuring using Monsoon (if available)
     monsoon_info = device.get("monsoon")
@@ -262,10 +292,10 @@ def start_measuring(device, output_path, auto_recharge_battery_level=None):
         )
 
     else:
-        # start collecting wtih monsoon (async)
+        # start collecting with monsoon (async)
         output_file = os.path.join(output_path, "measurements_monsoon.csv")
-        acalls.collect_monsoon_measurements(output_file)
-        time.sleep(constants.FIVE_SECONDS)
+        acalls.collect_monsoon_measurements(output_file, granularity=granularity)
+        time.sleep(constants.CONTROL_DEVICE_WAIT_TIME_AFTER_ASYNC_CALLS)
 
 
 def stop_measuring(device):
@@ -287,18 +317,18 @@ def stop_measuring(device):
     # re-enable USB
     usb_control = usblib.USBControl(device["usb"])
     usb_control.set_state("enabled")
-    time.sleep(constants.ONE_SECOND)
+    time.sleep(constants.CONTROL_DEVICE_DEFAULT_WAIT_TIME)
 
     # restore device state
     if device["os"] == "Android":
 
         # stop SW-based measuring using ADB
         acalls.stop_collecting_adb_measurements()
-        time.sleep(constants.ONE_SECOND)
+        time.sleep(constants.CONTROL_DEVICE_DEFAULT_WAIT_TIME)
 
         # disable adb-over-wifi
         adblib.disable_adb_over_wifi(device)
-        time.sleep(constants.ONE_SECOND)
+        time.sleep(constants.CONTROL_DEVICE_DEFAULT_WAIT_TIME)
 
     elif device["os"] == "iOS":
         pass
@@ -322,7 +352,7 @@ def enable_remote_control(device):
         blade_logger.logger.error("Error: Remote control is only supported for Android devices.")
         raise Exception("Error: Remote control is only supported for Android devices.")
 
-    # TODO: This relies on USB-based device-id. Fix is required to support measuring mode.
+    # TODO: This relies on USB-based device-id. Fix is required to support measuring mode over WiFi.
     device_id = device["adb_identifier"]
     acalls.enable_remote_control(device_id)
 

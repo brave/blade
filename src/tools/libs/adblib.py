@@ -15,7 +15,7 @@ TCPDUMP_PATH = "/data/local/tmp/tcpdump"
 
 
 # returns adb identifier base don the connection type
-def __get_adb_identifier(device, connection, port=5555):
+def __get_adb_identifier(device, connection, port=constants.ADB_OVER_WIFI_DEFAULT_PORT):
 
     if connection == "usb":
         return device["adb_identifier"]
@@ -26,15 +26,15 @@ def __get_adb_identifier(device, connection, port=5555):
     raise Exception(f"Error: Unknown connection '{connection}'.")
 
 
-# enable adb over wifi (default port is 5555)
-def enable_adb_over_wifi(device, port=5555):
+# enable adb over wifi
+def enable_adb_over_wifi(device, port=constants.ADB_OVER_WIFI_DEFAULT_PORT):
 
     adb_identifier = device["adb_identifier"]
     ip = device["ip"]
 
     # enable adb over wifi
     os.system(f"adb -s {adb_identifier} tcpip {port}")
-    time.sleep(constants.ONE_SECOND)
+    time.sleep(constants.ADB_COMMANDS_EXECUTION_TIMEOUT)
 
     # disconnect and reconnect over wifi, ignoring the expected error
     with Popen(
@@ -43,20 +43,45 @@ def enable_adb_over_wifi(device, port=5555):
         output, _ = process.communicate()
         if output:
             print(output)
-    time.sleep(constants.TWO_SECONDS)
+    time.sleep(constants.ADB_COMMANDS_EXTENDED_EXECUTION_TIMEOUT)
 
     os.system(f"adb connect {ip}:{port}")
-    time.sleep(constants.ONE_SECOND)
+    time.sleep(constants.ADB_COMMANDS_EXECUTION_TIMEOUT)
 
 
-# disable adb over wifi (default port is 5555)
-def disable_adb_over_wifi(device, port=5555):
+# disable adb over wifi
+def disable_adb_over_wifi(device, port=constants.ADB_OVER_WIFI_DEFAULT_PORT):
 
     ip = device["ip"]
 
     # disable adb over wifi
     os.system(f"adb disconnect {ip}:{port}")
-    time.sleep(constants.ONE_SECOND)
+    time.sleep(constants.SWITCH_ADB_CONNECTION_STATE_TIMEOUT)
+
+
+def get_device_adb_connection_state(device, port=constants.ADB_OVER_WIFI_DEFAULT_PORT):
+
+    # list adb devices and check if given device is listed (either identifier or ip:port)
+    output = os.popen("adb devices").read()
+    for line in output.splitlines():
+        if device["adb_identifier"] in line:
+            return "usb"
+        elif f"{device['ip']}:{port}" in line:
+            return "wifi"
+
+    return None
+
+
+def power_off_device(device, connection):
+
+    adb_identifier = __get_adb_identifier(device, connection)
+    os.system(f"adb -s {adb_identifier} reboot -p")
+
+
+def reboot_device(device, connection):
+
+    adb_identifier = __get_adb_identifier(device, connection)
+    os.system(f"adb -s {adb_identifier} reboot")
 
 
 def get_device_traffic(device, connection):

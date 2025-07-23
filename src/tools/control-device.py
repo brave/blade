@@ -214,7 +214,7 @@ def __parse_arguments(args):
     parser.add_argument(
         "-ar", "--auto-recharge",
         type=ratio_type,
-        metavar="BATTERY_LEVEL_RATIO",
+        metavar="[0.00-1.00]",
         default=None,
         help="Enable auto-recharge for the device, until the given battery level ratio is reached. 'None' means no auto-recharge. Only available for Android devices. Default threshold is None."
     )

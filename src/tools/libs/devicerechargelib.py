@@ -10,7 +10,7 @@ from libs import constants
 from libs import logger as blade_logger
 
 
-def auto_recharge_if_needed(device, current_connection="wifi", min_threshold_ratio=0.30, max_threshold_ratio=1.00):
+def auto_recharge_if_needed(device, current_connection="wifi", min_threshold_ratio=constants.DEVICE_RECHARGE_DEFAULT_MIN_BATTERY_LEVEL_RATIO, max_threshold_ratio=constants.DEVICE_RECHARGE_DEFAULT_MAX_BATTERY_LEVEL_RATIO):
     # checks the battery level of the device and charges it if it is below the threshold.
     # Returns True if charging was needed, False otherwise.
 
@@ -27,21 +27,21 @@ def auto_recharge_if_needed(device, current_connection="wifi", min_threshold_rat
         if usb_control.get_state() == "disabled":
             blade_logger.logger.info("Enabling relevant USB port to allow device charging...")
             usb_control.set_state("enabled")
-            time.sleep(constants.FIVE_SECONDS)
+            time.sleep(constants.DEVICE_RECHARGE_USB_CHANGE_STATE_TIMEOUT)
         
         # await...
         await_until_device_reaches_battery_level(device, max_threshold_ratio)
 
         # all done, re-disable the USB port to continue the experiment
         usb_control.set_state("disabled")
-        time.sleep(constants.FIVE_SECONDS)
+        time.sleep(constants.DEVICE_RECHARGE_USB_CHANGE_STATE_TIMEOUT)
 
         return True
     
     return False
 
 
-def await_until_device_reaches_battery_level(device, max_battery_level_ratio=1.00):
+def await_until_device_reaches_battery_level(device, max_battery_level_ratio=constants.DEVICE_RECHARGE_DEFAULT_MAX_BATTERY_LEVEL_RATIO):
     # waits until the device is charged to the threshold level
     # connection should always be "usb" since we are charging the device
 
@@ -53,4 +53,4 @@ def await_until_device_reaches_battery_level(device, max_battery_level_ratio=1.0
             break
 
         blade_logger.logger.info(f"Device is charging while at battery level {current_battery_level_ratio:.2f}. Waiting until it reaches {max_battery_level_ratio:.2f}.")
-        time.sleep(constants.SIXTY_SECONDS)
+        time.sleep(constants.DEVICE_RECHARGE_CHECK_CHARGING_LEVEL_FREQUENCY)

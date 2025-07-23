@@ -118,7 +118,7 @@ class BtkLib:
         self._send_hid_mouse_message(self.mouse_buttons, 0, 0)
 
     # send a text, character by character, with a given delay (in seconds)
-    def send_text(self, text, delay=constants.TENTH_OF_A_SECOND):
+    def send_text(self, text, delay=constants.BT_IOS_COMMANDS_DEFAULT_KEYBOARD_TYPE_DELAY):
 
         for character in text:
 
@@ -132,7 +132,7 @@ class BtkLib:
             self._send_hid_as_combo(hid_keys)
 
     # send a shortcut, e.g., "$ENTER", with a given delay (in seconds)
-    def send_shortcut(self, shortcut, delay=constants.TENTH_OF_A_SECOND):
+    def send_shortcut(self, shortcut, delay=constants.BT_IOS_COMMANDS_DEFAULT_KEYBOARD_TYPE_DELAY):
 
         hid_commands = keymap.hid_from_shortcut(shortcut)
 
@@ -144,7 +144,7 @@ class BtkLib:
         self._send_hid_as_combo(hid_commands)
 
     # send a key combo, e.g., ["KEY_LEFTMETA", "KEY_R"], with a given delay (in seconds)
-    def send_hid_keys(self, key_combo, delay=constants.TENTH_OF_A_SECOND):
+    def send_hid_keys(self, key_combo, delay=constants.BT_IOS_COMMANDS_DEFAULT_KEYBOARD_TYPE_DELAY):
 
         hid_keys = keymap.hid_from_keys(key_combo)
 
